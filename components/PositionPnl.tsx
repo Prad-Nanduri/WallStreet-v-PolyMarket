@@ -28,7 +28,8 @@ export default function PositionPnl() {
           norm.includes(r.event.toLowerCase()),
       );
       if (!hit) return null;
-      const mark = hit.polymarketPct / 100;
+      const yes = hit.polymarketPct / 100;
+      const mark = p.side === "yes" ? yes : 1 - yes;
       return {
         event: p.event.length > 28 ? p.event.slice(0, 28) + "…" : p.event,
         pnl: Number((((mark - p.avgPrice) / p.avgPrice) * 100).toFixed(1)),

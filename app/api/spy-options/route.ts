@@ -38,7 +38,8 @@ export async function GET() {
     const out: SpyOptionsData = {
       source: "live",
       spotSpy: spot,
-      impliedVol: iv30,
+      // CBOE reports IV as a percent (e.g. 13.35) — N(d2) needs a decimal.
+      impliedVol: iv30 > 3 ? iv30 / 100 : iv30,
       expiry: null,
     };
     return NextResponse.json(out);

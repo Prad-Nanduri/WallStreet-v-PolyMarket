@@ -12,8 +12,13 @@ import {
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
-/** Fuzzy-match a position's event title to a live arbitrage row. */
-function markFor(event: string, rows: { event: string; polymarketPct: number }[]) {
+/** Fuzzy-match a position's event title to a live arbitrage row.
+ *  Returns the mark for the HELD side: a NO contract marks at 1 - Yes price. */
+function markFor(
+  event: string,
+  side: "yes" | "no",
+  rows: { event: string; polymarketPct: number }[],
+) {
   const norm = event.toLowerCase();
   const hit = rows.find(
     (r) =>
@@ -21,7 +26,9 @@ function markFor(event: string, rows: { event: string; polymarketPct: number }[]
       r.event.toLowerCase().includes(norm) ||
       norm.includes(r.event.toLowerCase()),
   );
-  return hit ? hit.polymarketPct / 100 : null;
+  if (!hit) return null;
+  const yes = hit.polymarketPct / 100;
+  return side === "yes" ? yes : 1 - yes;
 }
 
 const inputCls =
@@ -41,7 +48,7 @@ export default function PortfolioPanel() {
   const [busy, setBusy] = useState(false);
 
   const marks = positions.map((p: Position) => {
-    const mark = markFor(p.event, rows);
+    const mark = markFor(p.event, p.side, rows);
     const value = mark !== null ? mark * p.size : null;
     const cost = p.avgPrice * p.size;
     const pnlPct = mark !== null ? (mark - p.avgPrice) / p.avgPrice : null;
