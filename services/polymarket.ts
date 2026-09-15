@@ -4,16 +4,33 @@ import type { EventCategory, PolymarketMarket } from "@/lib/types";
 // markets; this surfaces Fed/BTC/SPX financial markets on the first page.
 const GAMMA_URL =
   "https://gamma-api.polymarket.com/markets?active=true&limit=100&order=volume24hr&ascending=false";
-const MAX_PAGES = 10;
 // Cap matches per category — politics markets dominate early pages, so a
 // single global cap would starve btc/spx/fed of matches.
 const MAX_PER_CATEGORY = 8;
+// Wider net: extra keyword categories (sports/crypto/geo/misc) need more
+// pages of gamma results before every bucket fills.
+const MAX_PAGES = 20;
 
+// Sports/crypto/geo/misc legs come from Kalshi (cross-venue), so only
+// categories with a genuine second venue get keywords.
 const CATEGORY_KEYWORDS: [EventCategory, RegExp][] = [
   ["fed", /\b(fed|fomc|interest rate(s)?|powell|rate(s)? cut|rate(s)? hike)\b/i],
   ["btc", /\b(btc|bitcoin)\b/i],
+  ["crypto", /\b(eth|ethereum|solana|sol|xrp|doge|crypto)\b/i],
   ["spx", /\b(s&p|spx|s&p\s*500|nasdaq|stock market|dow jones)\b/i],
-  ["pol", /\b(president|election|nomination|electoral|senate|congress)\b/i],
+  [
+    "sports",
+    /\b(nfl|nba|nhl|mlb|super bowl|world cup|premier league|la liga|champions league|ufc|boxing|f1|formula 1|tennis|masters|stanley cup|epl|bundesliga|serie a|ligue 1|world series|finals|playoffs|ncaa|march madness|cricket|olympics)\b/i,
+  ],
+  [
+    "geo",
+    /\b(ukraine|russia|israel|gaza|iran|china|taiwan|ceasefire|war|nato|north korea|sanctions|invasion)\b/i,
+  ],
+  ["pol", /\b(president|election|nomination|electoral|senate|congress|mayor|governor|primary)\b/i],
+  [
+    "misc",
+    /\b(oscar|grammy|emmy|box office|album|movie|weather|hurricane|temperature|ai |gpt|apple|tesla|spacex|spacex|musk)\b/i,
+  ],
 ];
 
 function categorize(question: string): EventCategory | null {

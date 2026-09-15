@@ -1,4 +1,12 @@
-export type EventCategory = "fed" | "btc" | "spx" | "pol";
+export type EventCategory =
+  | "fed"
+  | "btc"
+  | "spx"
+  | "pol"
+  | "sports"
+  | "crypto"
+  | "geo"
+  | "misc";
 
 export interface PolymarketMarket {
   id: string;

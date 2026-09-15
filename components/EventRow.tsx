@@ -22,6 +22,10 @@ const CATEGORY_BADGE: Record<ArbitrageRow["category"], string> = {
   btc: "BTC",
   spx: "SPX",
   pol: "POL",
+  sports: "SPT",
+  crypto: "CRYPTO",
+  geo: "GEO",
+  misc: "MISC",
 };
 
 export default function EventRow({ row }: { row: ArbitrageRow }) {
