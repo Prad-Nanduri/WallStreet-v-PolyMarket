@@ -1,4 +1,5 @@
 import type { ArbitrageRow } from "@/lib/types";
+import Sparkline from "./Sparkline";
 
 function signal(spread: number): { label: string; cls: string } {
   if (spread > 10) return { label: "Sell YES — Poly rich", cls: "text-red" };
@@ -20,6 +21,7 @@ const CATEGORY_BADGE: Record<ArbitrageRow["category"], string> = {
   fed: "FED",
   btc: "BTC",
   spx: "SPX",
+  pol: "POL",
 };
 
 export default function EventRow({ row }: { row: ArbitrageRow }) {
@@ -62,6 +64,9 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
       >
         {row.spread > 0 ? "+" : ""}
         {row.spread.toFixed(1)}pp
+      </td>
+      <td className="px-4 py-3">
+        <Sparkline points={row.sparkline} />
       </td>
       <td className={`px-4 py-3 text-right text-[13px] font-medium ${s.cls}`}>
         {s.label}

@@ -1,4 +1,4 @@
-export type EventCategory = "fed" | "btc" | "spx";
+export type EventCategory = "fed" | "btc" | "spx" | "pol";
 
 export interface PolymarketMarket {
   id: string;
@@ -45,4 +45,10 @@ export interface ArbitrageRow {
   isSignificant: boolean;
   /** true when any underlying source fell back to demo data */
   stale: boolean;
+  /**
+   * 7 daily spread points ending at today's value.
+   * SIMULATED: deterministic random walk seeded from the event id — real
+   * history requires the Redis snapshot pipeline (skipped: UPSTASH_* unset).
+   */
+  sparkline: number[];
 }

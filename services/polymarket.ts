@@ -5,12 +5,15 @@ const GAMMA_URL =
 // The default ordering is dominated by politics markets, so we page until
 // we have collected enough fed/btc/spx matches (or run out of markets).
 const MAX_PAGES = 10;
-const MAX_MATCHES = 30;
+// Cap matches per category — politics markets dominate early pages, so a
+// single global cap would starve btc/spx/fed of matches.
+const MAX_PER_CATEGORY = 8;
 
 const CATEGORY_KEYWORDS: [EventCategory, RegExp][] = [
   ["fed", /\b(fed|fomc|rate(s)?)\b/i],
   ["btc", /\b(btc|bitcoin)\b/i],
   ["spx", /\b(s&p|spx|s&p\s*500)\b/i],
+  ["pol", /\b(president|election|nomination|electoral)\b/i],
 ];
 
 function categorize(question: string): EventCategory | null {
@@ -45,7 +48,11 @@ export async function fetchPolymarketMarkets(): Promise<PolymarketMarket[]> {
     const raw = (await res.json()) as Record<string, unknown>[];
     if (raw.length === 0) break;
     collect(raw, markets);
-    if (markets.length >= MAX_MATCHES) break;
+    const counts = markets.reduce<Record<string, number>>((acc, m) => {
+      acc[m.category] = (acc[m.category] ?? 0) + 1;
+      return acc;
+    }, {});
+    if (Object.values(counts).every((n) => n >= MAX_PER_CATEGORY)) break;
   }
   return markets.sort((a, b) => b.volume - a.volume);
 }
@@ -58,6 +65,11 @@ function collect(
     const question = String(m.question ?? m.title ?? "");
     const category = categorize(question);
     if (!category) continue;
+    if (
+      markets.filter((x) => x.category === category).length >=
+      MAX_PER_CATEGORY
+    )
+      continue;
 
     const prices = parseJsonArray(m.outcomePrices).map(Number);
     const outcomes = parseJsonArray(m.outcomes).map((o) =>

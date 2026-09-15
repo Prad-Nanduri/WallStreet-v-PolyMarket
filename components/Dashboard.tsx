@@ -6,6 +6,8 @@ import DemoToggle from "./DemoToggle";
 import ThemeToggle from "./ThemeToggle";
 import HeroStat from "./HeroStat";
 import EventRow from "./EventRow";
+import TableSkeleton from "./TableSkeleton";
+import TableErrorBoundary from "./TableErrorBoundary";
 
 function StatCard({
   label,
@@ -129,27 +131,21 @@ export default function Dashboard() {
                 <th className="px-4 py-2.5 text-right">Polymarket %</th>
                 <th className="px-4 py-2.5 text-right">Wall Street %</th>
                 <th className="px-4 py-2.5 text-right">Spread</th>
+                <th className="px-4 py-2.5">7d Trend</th>
                 <th className="px-4 py-2.5 text-right">Trade Signal</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <EventRow key={row.event} row={row} />
-              ))}
-              {!demo && loading && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="border-t border-border-soft px-4 py-8 text-center text-sm text-muted"
-                  >
-                    Loading live data…
-                  </td>
-                </tr>
-              )}
+              <TableErrorBoundary>
+                {rows.map((row) => (
+                  <EventRow key={row.event} row={row} />
+                ))}
+              </TableErrorBoundary>
+              {!demo && loading && <TableSkeleton rows={4} />}
               {!demo && !loading && rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="border-t border-border-soft px-4 py-8 text-center text-sm text-muted"
                   >
                     {error

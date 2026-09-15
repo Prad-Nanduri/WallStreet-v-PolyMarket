@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import { fetchPolymarketMarkets } from "@/services/polymarket";
 import { fetchDeribitSnapshots } from "@/services/deribit";
+import { seededSpreadHistory } from "@/lib/sparkline";
 
 export const runtime = "nodejs";
 
@@ -93,6 +94,14 @@ function fedProbability(
     prob = Math.max(...fedwatch.probabilities.map((p) => p.probability));
   }
   return { prob, stale: fedwatch.source === "demo" };
+}
+
+/**
+ * Politics/election events have no options-market equivalent, so there is
+ * no model price to compare against — use a flat 50% prior marked stale.
+ */
+function polProbability(): { prob: number; stale: boolean } {
+  return { prob: 0.5, stale: true };
 }
 
 interface SnapshotWithMs extends DeribitSnapshot {
@@ -186,7 +195,7 @@ export async function GET(req: Request) {
   ]);
 
   const rows: ArbitrageRow[] = [];
-  const counts = { fed: 0, btc: 0, spx: 0 };
+  const counts = { fed: 0, btc: 0, spx: 0, pol: 0 };
   for (const market of markets) {
     if (counts[market.category] >= MAX_PER_CATEGORY) continue;
     let result: { prob: number; stale: boolean } | null = null;
@@ -194,6 +203,7 @@ export async function GET(req: Request) {
     if (market.category === "btc")
       result = btcProbability(market, snapshots);
     if (market.category === "spx") result = spxProbability(market, spy);
+    if (market.category === "pol") result = polProbability();
     if (!result) continue;
 
     const polymarketPct = market.yesProbability * 100;
@@ -207,10 +217,17 @@ export async function GET(req: Request) {
       spread,
       isSignificant: Math.abs(spread) > 10,
       stale: result.stale,
+      sparkline: seededSpreadHistory(market.id, spread),
     });
     counts[market.category] += 1;
   }
 
   rows.sort((a, b) => Math.abs(b.spread) - Math.abs(a.spread));
+  // Fire-and-forget: no-ops unless ALERT_WEBHOOK_URL is configured.
+  fetch(`${origin}/api/alerts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows }),
+  }).catch(() => {});
   return NextResponse.json({ rows });
 }

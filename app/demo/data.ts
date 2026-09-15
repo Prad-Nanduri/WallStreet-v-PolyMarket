@@ -1,7 +1,14 @@
 import type { ArbitrageRow } from "@/lib/types";
+import { seededSpreadHistory } from "@/lib/sparkline";
+
+const withSpark = (r: Omit<ArbitrageRow, "sparkline">): ArbitrageRow => ({
+  ...r,
+  // simulated 7-day history (see lib/sparkline.ts)
+  sparkline: seededSpreadHistory(r.event, r.spread),
+});
 
 export const DEMO_ROWS: ArbitrageRow[] = [
-  {
+  withSpark({
     event: "Fed holds rates at September FOMC",
     category: "fed",
     polymarketPct: 68.0,
@@ -9,8 +16,8 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: 3.0,
     isSignificant: false,
     stale: false,
-  },
-  {
+  }),
+  withSpark({
     event: "Bitcoin above $90,000 by Dec 31",
     category: "btc",
     polymarketPct: 62.0,
@@ -18,8 +25,8 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: 17.2,
     isSignificant: true,
     stale: false,
-  },
-  {
+  }),
+  withSpark({
     event: "SPX above 6,600 by year-end",
     category: "spx",
     polymarketPct: 41.0,
@@ -27,8 +34,8 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: 2.6,
     isSignificant: false,
     stale: false,
-  },
-  {
+  }),
+  withSpark({
     event: "Fed cuts 25bp at next meeting",
     category: "fed",
     polymarketPct: 27.5,
@@ -36,7 +43,17 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: -2.5,
     isSignificant: false,
     stale: false,
-  },
+  }),
+  withSpark({
+    // no options-market equivalent for elections — flat 50% prior (demo)
+    event: "Republican wins 2028 presidential election",
+    category: "pol",
+    polymarketPct: 47.5,
+    wallStreetPct: 50.0,
+    spread: -2.5,
+    isSignificant: false,
+    stale: true,
+  }),
 ];
 
 export interface Holding {
