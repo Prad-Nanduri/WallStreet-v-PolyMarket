@@ -16,6 +16,7 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: 3.0,
     isSignificant: false,
     stale: false,
+    wallStreetSource: "FedWatch (demo)",
   }),
   withSpark({
     event: "Bitcoin above $90,000 by Dec 31",
@@ -25,6 +26,7 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: 17.2,
     isSignificant: true,
     stale: false,
+    wallStreetSource: "Deribit",
   }),
   withSpark({
     event: "SPX above 6,600 by year-end",
@@ -34,6 +36,7 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: 2.6,
     isSignificant: false,
     stale: false,
+    wallStreetSource: "CBOE",
   }),
   withSpark({
     event: "Fed cuts 25bp at next meeting",
@@ -43,6 +46,7 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: -2.5,
     isSignificant: false,
     stale: false,
+    wallStreetSource: "FedWatch (demo)",
   }),
   withSpark({
     // no options-market equivalent for elections — flat 50% prior (demo)
@@ -53,6 +57,7 @@ export const DEMO_ROWS: ArbitrageRow[] = [
     spread: -2.5,
     isSignificant: false,
     stale: true,
+    wallStreetSource: "50% prior",
   }),
 ];
 

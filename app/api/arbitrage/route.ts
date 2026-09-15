@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import { fetchPolymarketMarkets } from "@/services/polymarket";
 import { fetchDeribitSnapshots } from "@/services/deribit";
+import { fetchKalshiMarkets, kalshiPriceFor } from "@/services/kalshi";
 import { seededSpreadHistory } from "@/lib/sparkline";
 
 export const runtime = "nodejs";
@@ -165,7 +166,7 @@ function spxProbability(
 
 export async function GET(req: Request) {
   const origin = new URL(req.url).origin;
-  const [markets, snapshots, fedwatch, spy] = await Promise.all([
+  const [markets, snapshots, fedwatch, spy, kalshiMarkets] = await Promise.all([
     fetchPolymarketMarkets().catch(() => [] as PolymarketMarket[]),
     fetchDeribitSnapshots()
       .then((s) =>
@@ -192,18 +193,42 @@ export async function GET(req: Request) {
           expiry: null,
         }) satisfies SpyOptionsData,
     ),
+    fetchKalshiMarkets().catch(() => []),
   ]);
 
   const rows: ArbitrageRow[] = [];
   const counts = { fed: 0, btc: 0, spx: 0, pol: 0 };
   for (const market of markets) {
     if (counts[market.category] >= MAX_PER_CATEGORY) continue;
-    let result: { prob: number; stale: boolean } | null = null;
-    if (market.category === "fed") result = fedProbability(market, fedwatch);
+    let result: { prob: number; stale: boolean; source: string } | null =
+      null;
+    const withSource = (
+      r: { prob: number; stale: boolean } | null,
+      source: string,
+    ) => (r ? { ...r, source } : null);
+    const kalshi = kalshiPriceFor(market.question, kalshiMarkets);
+    if (market.category === "fed")
+      // Prefer a live Kalshi market price when a matching Fed market exists;
+      // otherwise the FedWatch leg (demo until CME licensing is resolved).
+      result = kalshi
+        ? { prob: kalshi.prob, stale: false, source: "Kalshi" }
+        : withSource(
+            fedProbability(market, fedwatch),
+            fedwatch.source === "demo" ? "FedWatch (demo)" : "FedWatch",
+          );
     if (market.category === "btc")
-      result = btcProbability(market, snapshots);
-    if (market.category === "spx") result = spxProbability(market, spy);
-    if (market.category === "pol") result = polProbability();
+      result = withSource(btcProbability(market, snapshots), "Deribit");
+    if (market.category === "spx")
+      result = withSource(
+        spxProbability(market, spy),
+        spy.source === "demo" ? "SPY (demo)" : "CBOE",
+      );
+    if (market.category === "pol")
+      // Cross-venue arbitrage: a Kalshi twin market is a real live
+      // comparison; fall back to the flat 50% demo prior when none matches.
+      result = kalshi
+        ? { prob: kalshi.prob, stale: false, source: "Kalshi" }
+        : { ...polProbability(), source: "50% prior" };
     if (!result) continue;
 
     const polymarketPct = market.yesProbability * 100;
@@ -215,11 +240,11 @@ export async function GET(req: Request) {
       polymarketPct,
       wallStreetPct,
       spread,
-      // `pol` rows compare against a flat 50% demo prior, not a real
-      // options-implied probability — never flag them as arbitrage or
-      // they'd dominate the table and spam alerts.
-      isSignificant: market.category !== "pol" && Math.abs(spread) > 10,
+      // Only flag rows where BOTH legs are live — a demo prior is a
+      // placeholder, not a mispricing, and would spam alerts.
+      isSignificant: !result.stale && Math.abs(spread) > 10,
       stale: result.stale,
+      wallStreetSource: result.source,
       sparkline: seededSpreadHistory(market.id, spread),
     });
     counts[market.category] += 1;

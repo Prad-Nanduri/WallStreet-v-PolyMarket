@@ -45,6 +45,8 @@ export interface ArbitrageRow {
   isSignificant: boolean;
   /** true when any underlying source fell back to demo data */
   stale: boolean;
+  /** which venue produced the Wall Street leg, e.g. "Deribit", "Kalshi", "FedWatch (demo)" */
+  wallStreetSource?: string;
   /**
    * 7 daily spread points ending at today's value.
    * SIMULATED: deterministic random walk seeded from the event id — real
