@@ -215,7 +215,10 @@ export async function GET(req: Request) {
       polymarketPct,
       wallStreetPct,
       spread,
-      isSignificant: Math.abs(spread) > 10,
+      // `pol` rows compare against a flat 50% demo prior, not a real
+      // options-implied probability — never flag them as arbitrage or
+      // they'd dominate the table and spam alerts.
+      isSignificant: market.category !== "pol" && Math.abs(spread) > 10,
       stale: result.stale,
       sparkline: seededSpreadHistory(market.id, spread),
     });
