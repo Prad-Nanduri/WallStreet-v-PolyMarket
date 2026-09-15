@@ -18,10 +18,18 @@ function relTime(ts: number): string {
  * Real activity log from the local portfolio store; falls back to the demo
  * feed when the user hasn't recorded any actions yet.
  */
-export default function ActivityFeed({ large = false }: { large?: boolean }) {
+export default function ActivityFeed({
+  large = false,
+  note = false,
+}: {
+  large?: boolean;
+  /** show a "sample feed" footer when falling back to demo items */
+  note?: boolean;
+}) {
   const { activity } = usePortfolio();
+  const isSample = activity.length === 0;
   const items: ActivityItem[] =
-    activity.length > 0
+    !isSample
       ? activity.map((a) => ({
           side: a.side,
           label: a.label,
@@ -60,6 +68,12 @@ export default function ActivityFeed({ large = false }: { large?: boolean }) {
           <span className="text-xs text-muted">{a.when}</span>
         </li>
       ))}
+      {note && isSample && (
+        <li className="border-t border-border-soft px-4 py-2.5 text-[11px] text-muted">
+          Sample feed — your trades and position changes appear here once you
+          add them on the Portfolio page.
+        </li>
+      )}
     </ul>
   );
 }

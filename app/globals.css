@@ -17,11 +17,11 @@
 }
 
 [data-theme="dark"] {
-  --bg: #030507;
-  --panel: #080b10;
-  --panel-2: #0d1219;
-  --border: #161d28;
-  --border-soft: #10161f;
+  --bg: #010203;
+  --panel: #05080c;
+  --panel-2: #0a0e15;
+  --border: #131a24;
+  --border-soft: #0d131c;
   --text: #e9edf3;
   --muted: #6f7b8c;
   --accent: #4d8dff;

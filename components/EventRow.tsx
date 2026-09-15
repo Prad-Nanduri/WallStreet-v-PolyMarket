@@ -41,8 +41,11 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
             {row.event}
           </span>
           {row.stale && (
-            <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted">
-              demo feed
+            <span
+              title="One leg of this row uses demo values (FedWatch needs a CME license; elections have no options market) — the other leg is live."
+              className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted"
+            >
+              demo leg
             </span>
           )}
         </div>

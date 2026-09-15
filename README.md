@@ -88,7 +88,7 @@ No environment variables are required — every data source falls back to built-
 | `GET /api/polymarket` | Polymarket Gamma | Active markets matching fed/btc/spx/pol keywords, paginated & capped per category |
 | `GET /api/deribit` | Deribit public v2 | BTC spot, nearest-strike mark IV, DVOL fallback |
 | `GET /api/fedwatch` | CME FedWatch | Rate-probability forecasts — **demo values** (upstream API requires a license) |
-| `GET /api/spy-options` | Yahoo Finance | SPY options chain; **demo values** when Yahoo rate-limits |
+| `GET /api/spy-options` | CBOE delayed quotes | SPY spot + IV30 implied vol; **demo values** on failure |
 | `POST /api/alerts` | Slack/Discord webhook | `{sent}` — posts when a spread crosses ±10pp, rate-limited once/event/day |
 | `GET /api/wallet?wallet=0x…` | Polymarket data-api | Public positions for a proxy wallet (read-only, no auth) |
 | `POST /api/revalidate` | — | Drops the shared 5-minute `arb-data` fetch cache |
@@ -107,7 +107,7 @@ Positions mark-to-market against the active feed (fuzzy event-name match to the 
 
 ## Known limitations
 
-- **SPX ≈ SPY × 10** — strikes/spot are scaled from the SPY chain; dividends and settlement differ from real SPX options.
+- **SPX ≈ SPY × 10** — spot and the IV30 input are scaled from CBOE's free delayed-quotes feed; dividends and settlement differ from real SPX options.
 - **CME FedWatch is demo-only** — the official endpoint returns 401 without a market-data license; the route serves hardcoded probabilities until resolved.
 - **Sparkline history is simulated** — a deterministic seeded random walk, unless `UPSTASH_*` persistence is configured.
 - **Election (`pol`) rows use a flat 50% prior** — there's no options-market equivalent for elections, so the Wall Street leg is a hardcoded comparison marked `stale`.

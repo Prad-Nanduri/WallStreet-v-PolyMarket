@@ -132,7 +132,7 @@ export default function SettingsPage() {
             <li>· Polymarket — live (gamma-api, 5m cache)</li>
             <li>· Deribit — live (mark IV, DVOL fallback)</li>
             <li>· CME FedWatch — demo (upstream API requires a data license)</li>
-            <li>· SPY/SPX options — demo (Yahoo endpoint rate-limited)</li>
+            <li>· SPY/SPX options — live (CBOE delayed quotes, IV30)</li>
           </ul>
         </div>
       </section>
