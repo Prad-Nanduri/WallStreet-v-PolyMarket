@@ -216,13 +216,15 @@ export default function Dashboard() {
             />
           </div>
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px]">
+          <table className="w-full min-w-[820px]">
             <thead>
               <tr className="text-left text-[11px] font-semibold uppercase tracking-widest text-muted">
                 <th className="px-4 py-2.5">Event</th>
                 <th className="px-4 py-2.5 text-right">Polymarket %</th>
+                <th className="px-4 py-2.5 text-right">Kalshi %</th>
                 <th className="px-4 py-2.5 text-right">Wall Street %</th>
                 <th className="px-4 py-2.5 text-right">Spread</th>
+                <th className="px-4 py-2.5">Status</th>
                 <th className="px-4 py-2.5">7d Trend</th>
                 <th className="px-4 py-2.5 text-right">Trade Signal</th>
               </tr>
@@ -239,7 +241,7 @@ export default function Dashboard() {
               {!demo && !loading && visible.length === 0 && rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="border-t border-border-soft px-4 py-8 text-center text-sm text-muted"
                   >
                     {error
@@ -251,7 +253,7 @@ export default function Dashboard() {
               {searching && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="border-t border-border-soft px-4 py-6 text-center text-sm text-muted"
                   >
                     Searching Polymarket & Kalshi…
@@ -261,7 +263,7 @@ export default function Dashboard() {
               {searchRows !== null && !searching && searchRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="border-t border-border-soft px-4 py-6 text-center text-sm text-muted"
                   >
                     No markets on Polymarket or Kalshi for this topic.
@@ -271,7 +273,7 @@ export default function Dashboard() {
               {visible.length === 0 && liveRows.length > 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="border-t border-border-soft px-4 py-6 text-center text-sm text-muted"
                   >
                     No rows match this filter.
@@ -338,6 +340,22 @@ function Leg({
   );
 }
 
+function StatusCell({ status }: { status: "live" | "resolved" }) {
+  return (
+    <td className="px-4 py-3">
+      <span
+        className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+          status === "live"
+            ? "border-[var(--green)]/40 bg-[var(--green-bg)] text-green"
+            : "border-border bg-panel-2 text-muted"
+        }`}
+      >
+        {status === "live" ? "Live" : "Resolved"}
+      </span>
+    </td>
+  );
+}
+
 function SearchResultRow({ row }: { row: SearchRow }) {
   return (
     <tr className="border-t border-border-soft transition-colors hover:bg-[var(--hover)]">
@@ -352,12 +370,14 @@ function SearchResultRow({ row }: { row: SearchRow }) {
         </div>
       </td>
       <Leg pct={row.polymarketPct} via="Polymarket" />
+      <Leg pct={row.kalshiPct} via="Kalshi" />
       <Leg pct={row.wallStreetPct} via={row.wallStreetSource} />
       <td className="px-4 py-3 text-right font-mono text-[13px] font-semibold tabular-nums text-muted">
         {row.spread === null
           ? "—"
           : `${row.spread > 0 ? "+" : ""}${row.spread.toFixed(1)}pp`}
       </td>
+      <StatusCell status={row.status} />
       <td className="px-4 py-3 text-muted">—</td>
       <td className="px-4 py-3 text-right text-[13px] text-muted">
         {row.spread === null

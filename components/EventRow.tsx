@@ -60,6 +60,18 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
           via Polymarket
         </div>
       </td>
+      <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums">
+        {row.kalshiPct === null ? (
+          <span className="text-muted">—</span>
+        ) : (
+          <>
+            {row.kalshiPct.toFixed(1)}%
+            <div className="text-[10px] font-normal text-muted">
+              via Kalshi
+            </div>
+          </>
+        )}
+      </td>
       <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums text-muted">
         {row.wallStreetPct.toFixed(1)}%
         {row.wallStreetSource && (
@@ -79,6 +91,17 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
       >
         {row.spread > 0 ? "+" : ""}
         {row.spread.toFixed(1)}pp
+      </td>
+      <td className="px-4 py-3">
+        <span
+          className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+            row.status === "live"
+              ? "border-[var(--green)]/40 bg-[var(--green-bg)] text-green"
+              : "border-border bg-panel-2 text-muted"
+          }`}
+        >
+          {row.status === "live" ? "Live" : "Resolved"}
+        </span>
       </td>
       <td className="px-4 py-3">
         <Sparkline points={row.sparkline} />

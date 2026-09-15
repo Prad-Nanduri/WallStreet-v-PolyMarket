@@ -58,8 +58,18 @@ export async function GET(req: Request) {
 
   for (const m of poly.slice(0, 20)) {
     seen.add(m.question.toLowerCase());
-    // Second leg: options math for price-threshold markets (Deribit /
-    // CBOE), otherwise a Kalshi twin — else the cell shows "no market".
+    // Kalshi leg: explicit venue column. Options leg: Deribit / CBOE for
+    // price-threshold markets — either can be absent.
+    const sp = kalshiSportsPrice(m.question, kalshiGames);
+    const kalshiHit = kalshiEvents.find((k) => {
+      const a = k.title.toLowerCase();
+      const b = m.question.toLowerCase();
+      return a === b || a.includes(b) || b.includes(a);
+    });
+    const kalshiPct =
+      (sp ? sp.prob : null) ??
+      (kalshiHit?.yesPrice ?? null);
+
     let wall: { prob: number; source: string } | null = null;
     if (m.category === "btc") {
       const r = cryptoProbability(m, btcSnaps, "btc");
@@ -74,17 +84,20 @@ export async function GET(req: Request) {
       if (r && !r.stale)
         wall = { prob: r.prob, source: spy.source === "demo" ? "SPY" : "CBOE" };
     }
-    if (!wall) {
-      const sp = kalshiSportsPrice(m.question, kalshiGames);
-      if (sp) wall = { prob: sp.prob, source: "Kalshi" };
-    }
+    const endMs = Date.parse(m.endDate);
+    const resolved =
+      m.closed || (Number.isFinite(endMs) && endMs < Date.now());
+    const polyPct = m.yesProbability * 100;
+    const vs = wall ? wall.prob * 100 : kalshiPct;
     rows.push({
       event: m.question,
       category: m.category,
-      polymarketPct: m.yesProbability * 100,
+      polymarketPct: polyPct,
+      kalshiPct: kalshiPct === null ? null : kalshiPct * 100,
       wallStreetPct: wall ? wall.prob * 100 : null,
       wallStreetSource: wall?.source,
-      spread: wall ? m.yesProbability * 100 - wall.prob * 100 : null,
+      spread: vs === null ? null : polyPct - vs,
+      status: resolved ? "resolved" : "live",
     });
   }
 
@@ -94,11 +107,14 @@ export async function GET(req: Request) {
       event: k.title,
       category: categorize(k.title) ?? "other",
       polymarketPct: null,
-      wallStreetPct: k.yesPrice === null ? null : k.yesPrice * 100,
-      wallStreetSource: "Kalshi",
+      kalshiPct: k.yesPrice === null ? null : k.yesPrice * 100,
+      wallStreetPct: null,
       spread: null,
+      status: "live", // Kalshi hits come from the status=open events feed
     });
   }
 
+  // Live, tradable markets first — resolved 0%/100% rows sink to the end.
+  rows.sort((a, b) => (a.status === b.status ? 0 : a.status === "live" ? -1 : 1));
   return NextResponse.json({ rows });
 }

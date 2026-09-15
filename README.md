@@ -9,14 +9,22 @@ The Wall Street leg is built two ways:
 - **Options-implied probabilities** — Black–Scholes binary-call probability `e^{-rT}·N(d2)` computed over live Deribit options chains (BTC + ETH) and CBOE delayed SPY quotes (SPX proxy). A prediction market is literally a binary option, so this is the principled comparison.
 - **Cross-venue prices** — Kalshi, the other regulated prediction market, as the second leg for Fed, sports, politics, geopolitics, and culture markets where no options equivalent exists. Polymarket vs Kalshi is genuine venue arbitrage.
 
-Every leg carries a venue tag (`via Polymarket` / `via Deribit` / `via Kalshi` / `via CBOE`), so provenance is always visible — and anything that can't be priced honestly is labeled demo rather than faked.
+Every leg carries a venue tag (`via Polymarket` / `via Kalshi` / `via Deribit` / `via CBOE`), so provenance is always visible — and anything that can't be priced honestly is labeled demo rather than faked.
 
 **Live demo:** https://wallstreet-v-polymarket.vercel.app
 
+## What this is for — and why
+
+Prediction markets and derivatives markets price the *same* uncertainty independently, on different venues, with different participants and collateral. When they disagree beyond a threshold, one side is mispriced — the textbook definition of a cross-market arbitrage signal. This dashboard surfaces those disagreements in real time: crowd-implied probability (Polymarket, Kalshi) vs. options-implied probability (Deribit, CBOE) vs. futures-implied rates (CME FedWatch).
+
+Use it as a screening tool: a +10pp spread on "BTC above $90k" means the prediction market crowd is far more bullish than option traders paying for the same payoff — an opportunity to buy the cheap leg or a flag that the venues are pricing different contracts.
+
+**Why it signals quant competence:** the project isn't a data dashboard glued onto APIs — it implements the actual machinery a derivatives desk uses. Black–Scholes binary-call pricing `e^{-rT}·N(d2)` to convert option IVs into event probabilities, risk-neutral valuation, IV-as-sigma bridging between continuous (options) and discrete (prediction-market) payoffs, cross-venue fuzzy contract matching (the real-world problem of knowing two markets are "the same event"), mark-to-market portfolio tracking, and honest data-provenance labeling — the same disciplines behind statistical arbitrage, vol trading, and market-microstructure work. It demonstrates fluency in the exact vocabulary of quant / risk / systematic-trading-adjacent engineering roles, built end-to-end as a production-grade Next.js system.
+
 ## Feature tour
 
-- **Cross-market spreads table** — live rows across 8 categories (Fed, BTC, SPX, politics, sports, crypto, geopolitics, culture) with spread, 7-day sparkline, and trade signal. Category filters, event search, and demo-leg visibility toggle.
-- **Free-text topic search** — search anything tradable ("tesla", "pope", "lakers"). Queries Polymarket's server-side search and pages Kalshi's open events for token matches; each leg renders its real price or an explicit *no market* when a venue doesn't list the topic.
+- **Cross-market spreads table** — the top 15 highest-volume live markets across 8 categories (Fed, BTC, SPX, politics, sports, crypto, geopolitics, culture), each with Polymarket %, Kalshi %, Wall Street % (options-implied), spread, live/resolved status, 7-day sparkline, and trade signal. Category filters, event search, and demo-leg visibility toggle.
+- **Free-text topic search** — search anything tradable ("tesla", "pope", "lakers"). Queries Polymarket's server-side search and pages Kalshi's open events for token matches; each leg renders its real price or an explicit *no market* when a venue doesn't list the topic. Resolved markets (the ones pinned at ~0%/100%) are tagged **Resolved** and sorted below live, tradable markets.
 - **Portfolio** — manual entry, CSV import, or paste a `0x…` Polymarket proxy wallet to pull real positions (read-only public API). Positions mark-to-market against the live feed and persist in localStorage.
 - **Analytics** — spread distribution + position P&L charts (Recharts), driven by your actual positions.
 - **History & activity** — every add/close/import lands in a persistent activity log rendered on the dashboard and `/history`.
@@ -66,7 +74,7 @@ flowchart LR
     POL & DER & FED & SPY --> CACHE[fetch cache<br/>revalidate: 300s]
 ```
 
-`/api/arbitrage` fans out to all sources, tags each market into a category via keyword matching, computes the Wall Street leg (options math for price markets, Kalshi twins elsewhere), and emits rows of `{event, category, polymarketPct, wallStreetPct, wallStreetSource, spread, sparkline, isSignificant, stale}`. The Black–Scholes `N(d2)` uses a hand-rolled Abramowitz–Stegun `erf` — zero math dependencies, verified by Vitest.
+`/api/arbitrage` fans out to all sources, tags each market into a category via keyword matching, computes the Wall Street leg (options math for price markets, Kalshi twins elsewhere), keeps the top 15 rows by Polymarket 24h volume, and emits `{event, category, polymarketPct, kalshiPct, wallStreetPct, wallStreetSource, spread, status, volume, sparkline, isSignificant, stale}`. The Black–Scholes `N(d2)` uses a hand-rolled Abramowitz–Stegun `erf` — zero math dependencies, verified by Vitest.
 
 ## Tech stack
 
@@ -101,8 +109,8 @@ Users with FedWatch access can also paste per-meeting probabilities on `/setting
 
 | Route | Source | Returns |
 | --- | --- | --- |
-| `GET /api/arbitrage` | Aggregator | Spread rows joining Polymarket to options-derived and Kalshi probabilities |
-| `GET /api/search?q=…` | Polymarket + Kalshi + Deribit + CBOE | Free-text market search; each leg is a real price or `null` ("no market") |
+| `GET /api/arbitrage` | Aggregator | Top-15-by-volume spread rows joining Polymarket, Kalshi, and options-derived probabilities, with live/resolved status |
+| `GET /api/search?q=…` | Polymarket + Kalshi + Deribit + CBOE | Free-text market search; each leg is a real price or `null` ("no market"), resolved markets flagged |
 | `GET /api/polymarket` | Polymarket Gamma | Top-volume markets, categorized, paginated ≤ 2,000 |
 | `GET /api/deribit` | Deribit v2 | BTC/ETH spot, nearest-strike mark IV, DVOL fallback |
 | `GET /api/fedwatch` | CME FedWatch | Rate probabilities — demo unless `CME_FEDWATCH_API_KEY` or manual override |
