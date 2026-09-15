@@ -10,10 +10,10 @@ const MAX_PAGES = 10;
 const MAX_PER_CATEGORY = 8;
 
 const CATEGORY_KEYWORDS: [EventCategory, RegExp][] = [
-  ["fed", /\b(fed|fomc|rate(s)?)\b/i],
+  ["fed", /\b(fed|fomc|interest rate(s)?|powell|rate(s)? cut|rate(s)? hike)\b/i],
   ["btc", /\b(btc|bitcoin)\b/i],
-  ["spx", /\b(s&p|spx|s&p\s*500)\b/i],
-  ["pol", /\b(president|election|nomination|electoral)\b/i],
+  ["spx", /\b(s&p|spx|s&p\s*500|nasdaq|stock market|dow jones)\b/i],
+  ["pol", /\b(president|election|nomination|electoral|senate|congress)\b/i],
 ];
 
 function categorize(question: string): EventCategory | null {

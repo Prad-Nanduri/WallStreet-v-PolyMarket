@@ -19,8 +19,17 @@ const DEMO: FedWatchData = {
 };
 
 export async function GET() {
+  // Licensed users: set CME_FEDWATCH_API_KEY in the environment and the
+  // official endpoint is queried with it. Unauthenticated calls 401, and
+  // CME's public futures-settlements endpoint (which an open-source
+  // FedWatch reconstruction would need) IP-blocks datacenter traffic, so
+  // there is no viable unauthenticated upstream — see README limitations.
+  const apiKey = process.env.CME_FEDWATCH_API_KEY;
   try {
-    const res = await fetch(CME_URL, { next: { revalidate: 300, tags: ["arb-data"] } });
+    const res = await fetch(CME_URL, {
+      next: { revalidate: 300, tags: ["arb-data"] },
+      headers: apiKey ? { "x-api-key": apiKey, Authorization: `Bearer ${apiKey}` } : {},
+    });
     if (!res.ok) throw new Error(`cme fedwatch ${res.status}`);
     const json = await res.json();
     return NextResponse.json({ source: "live", raw: json });

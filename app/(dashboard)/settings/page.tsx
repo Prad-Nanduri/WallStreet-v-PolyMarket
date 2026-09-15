@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useArbData } from "@/components/DataProvider";
 import { portfolio, usePortfolio } from "@/lib/portfolio";
 
@@ -34,6 +34,33 @@ export default function SettingsPage() {
   const theme = useSyncExternalStore(subTheme, getTheme, getServerTheme);
   const { demo, setDemo } = useArbData();
   const { positions } = usePortfolio();
+  const [fedJson, setFedJson] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (localStorage.getItem("wsp_fedwatch_override") ?? ""),
+  );
+  const [fedStatus, setFedStatus] = useState<"ok" | "err" | null>(null);
+
+  const saveFedOverride = () => {
+    try {
+      if (!fedJson.trim()) {
+        localStorage.removeItem("wsp_fedwatch_override");
+        setFedStatus("ok");
+        return;
+      }
+      const obj = JSON.parse(fedJson) as Record<string, unknown>;
+      const entries = Object.entries(obj);
+      if (
+        !entries.length ||
+        entries.some(([k, v]) => !k.trim() || !Number.isFinite(Number(v)))
+      )
+        throw new Error("bad shape");
+      localStorage.setItem("wsp_fedwatch_override", fedJson);
+      setFedStatus("ok");
+    } catch {
+      setFedStatus("err");
+    }
+  };
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-6">
@@ -131,9 +158,55 @@ export default function SettingsPage() {
           <ul className="mt-2 space-y-1 text-xs text-muted">
             <li>· Polymarket — live (gamma-api, 5m cache)</li>
             <li>· Deribit — live (mark IV, DVOL fallback)</li>
-            <li>· CME FedWatch — demo (upstream API requires a data license)</li>
+            <li>
+              · Kalshi — live (cross-venue comparison for Fed & politics
+              markets)
+            </li>
+            <li>
+              · CME FedWatch — demo (upstream API requires a data license; set
+              CME_FEDWATCH_API_KEY to enable)
+            </li>
             <li>· SPY/SPX options — live (CBOE delayed quotes, IV30)</li>
           </ul>
+        </div>
+
+        <div className="px-5 py-4">
+          <div className="text-sm font-medium">Manual FedWatch override</div>
+          <div className="mt-1 text-xs text-muted">
+            If you have a CME data license, paste FedWatch probabilities as
+            JSON: a map of keyword → probability in percent. Fed rows whose
+            question contains the keyword use your value instead of the demo
+            leg. Example: {`{"rate cut": 68.5, "rate hike": 2.0}`}
+          </div>
+          <textarea
+            value={fedJson}
+            onChange={(e) => setFedJson(e.target.value)}
+            rows={3}
+            spellCheck={false}
+            placeholder='{"rate cut": 68.5}'
+            className="mt-2 w-full rounded-lg border border-border bg-panel-2 px-3 py-2 font-mono text-xs text-text placeholder:text-muted focus:outline-none"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={saveFedOverride}
+              className="rounded-lg border border-border bg-panel-2 px-3 py-1.5 text-sm transition-opacity hover:opacity-80"
+            >
+              Save
+            </button>
+            {fedStatus === "ok" && (
+              <span className="text-xs text-green">
+                Saved — applies to matching fed rows.
+              </span>
+            )}
+            {fedStatus === "err" && (
+              <span className="text-xs text-red">
+                Invalid JSON — expected {`{"keyword": percent}`}.
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-[11px] text-muted">
+            Stored in your browser only; reload the dashboard to apply.
+          </div>
         </div>
       </section>
     </main>
