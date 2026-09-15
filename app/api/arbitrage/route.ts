@@ -289,12 +289,25 @@ export async function GET(req: Request) {
       isSignificant: !result.stale && Math.abs(spread) > 10,
       stale: result.stale,
       wallStreetSource: result.source,
+      kalshiPct:
+        result.source === "Kalshi"
+          ? result.prob * 100
+          : kalshi
+            ? kalshi.prob * 100
+            : null,
+      volume: market.volume,
+      status:
+        market.closed || Date.parse(market.endDate) < Date.now()
+          ? "resolved"
+          : "live",
       sparkline: seededSpreadHistory(market.id, spread),
     });
     counts[market.category] += 1;
   }
 
-  rows.sort((a, b) => Math.abs(b.spread) - Math.abs(a.spread));
+  // Top 15 by trading volume — the markets people are actually trading.
+  rows.sort((a, b) => b.volume - a.volume);
+  rows.splice(15);
   // Fire-and-forget: no-ops unless ALERT_WEBHOOK_URL is configured.
   fetch(`${origin}/api/alerts`, {
     method: "POST",

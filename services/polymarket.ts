@@ -68,6 +68,7 @@ export async function searchPolymarketMarkets(
         yesProbability: 0.5,
         volume: Number(ev.volume ?? 0),
         endDate: String(ev.endDate ?? ""),
+        closed: Boolean(ev.closed),
       });
       continue;
     }
@@ -93,6 +94,7 @@ export async function searchPolymarketMarkets(
         yesProbability,
         volume: Number(m.volumeNum ?? m.volume ?? ev.volume ?? 0),
         endDate: String(m.endDateIso ?? m.endDate ?? ev.endDate ?? ""),
+        closed: Boolean(m.closed ?? ev.closed),
       });
     }
   }
