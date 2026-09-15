@@ -33,11 +33,70 @@ const CATEGORY_KEYWORDS: [EventCategory, RegExp][] = [
   ],
 ];
 
-function categorize(question: string): EventCategory | null {
+export function categorize(question: string): EventCategory | null {
   for (const [category, re] of CATEGORY_KEYWORDS) {
     if (re.test(question)) return category;
   }
   return null;
+}
+
+const SEARCH_URL = "https://gamma-api.polymarket.com/public-search";
+
+/** Text search over Polymarket events — returns categorized markets like
+ *  fetchPolymarketMarkets, uncapped, for the user's searched topic. */
+export async function searchPolymarketMarkets(
+  q: string,
+  limit = 25,
+): Promise<PolymarketMarket[]> {
+  const res = await fetch(
+    `${SEARCH_URL}?q=${encodeURIComponent(q)}&limit_per_type=${limit}`,
+    { next: { revalidate: 60, tags: ["arb-data"] } },
+  );
+  if (!res.ok) throw new Error(`polymarket search ${res.status}`);
+  const json = (await res.json()) as { events?: Record<string, unknown>[] };
+  const markets: PolymarketMarket[] = [];
+  for (const ev of json.events ?? []) {
+    const evTitle = String(ev.title ?? "");
+    const nested = (ev.markets ?? []) as Record<string, unknown>[];
+    if (nested.length === 0) {
+      const category = categorize(evTitle);
+      if (!category) continue;
+      markets.push({
+        id: String(ev.id ?? evTitle),
+        question: evTitle,
+        category,
+        yesProbability: 0.5,
+        volume: Number(ev.volume ?? 0),
+        endDate: String(ev.endDate ?? ""),
+      });
+      continue;
+    }
+    for (const m of nested) {
+      const question = String(m.question ?? evTitle);
+      const category = categorize(question) ?? categorize(evTitle) ?? "misc";
+      const prices = parseJsonArray(m.outcomePrices).map(Number);
+      const outcomes = parseJsonArray(m.outcomes).map((o) =>
+        String(o).toLowerCase(),
+      );
+      const yesIdx = outcomes.findIndex((o) => o === "yes");
+      const yesProbability =
+        yesIdx >= 0 && Number.isFinite(prices[yesIdx])
+          ? (prices[yesIdx] as number)
+          : Number.isFinite(prices[0])
+            ? (prices[0] as number)
+            : null;
+      if (yesProbability === null) continue;
+      markets.push({
+        id: String(m.id ?? question),
+        question,
+        category,
+        yesProbability,
+        volume: Number(m.volumeNum ?? m.volume ?? ev.volume ?? 0),
+        endDate: String(m.endDateIso ?? m.endDate ?? ev.endDate ?? ""),
+      });
+    }
+  }
+  return markets.sort((a, b) => b.volume - a.volume);
 }
 
 // outcomePrices / outcomes / clobTokenIds arrive as JSON-encoded strings
