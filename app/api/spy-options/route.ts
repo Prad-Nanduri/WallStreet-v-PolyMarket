@@ -17,7 +17,7 @@ export async function GET() {
     const res = await fetch(
       "https://query2.finance.yahoo.com/v7/finance/options/SPY",
       {
-        next: { revalidate: 300 },
+        next: { revalidate: 300, tags: ["arb-data"] },
         headers: { "User-Agent": "Mozilla/5.0" },
       },
     );
@@ -32,7 +32,7 @@ export async function GET() {
     const chainRes = await fetch(
       `https://query2.finance.yahoo.com/v7/finance/options/SPY?date=${expiryTs}`,
       {
-        next: { revalidate: 300 },
+        next: { revalidate: 300, tags: ["arb-data"] },
         headers: { "User-Agent": "Mozilla/5.0" },
       },
     );

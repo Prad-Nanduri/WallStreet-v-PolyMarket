@@ -1,7 +1,7 @@
 "use client";
 
-import { DEMO_ACTIVITY } from "@/app/demo/data";
 import { useArbData } from "./DataProvider";
+import ActivityFeed from "./ActivityFeed";
 import DemoToggle from "./DemoToggle";
 import ThemeToggle from "./ThemeToggle";
 import HeroStat from "./HeroStat";
@@ -163,29 +163,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold">Recent Activity</h2>
             <span className="text-xs text-muted">Today</span>
           </div>
-          <ul>
-            {DEMO_ACTIVITY.map((a, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-3 border-t border-border-soft px-4 py-3 first:border-t-0 transition-colors hover:bg-[var(--hover)]"
-              >
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs ${
-                    a.side === "buy"
-                      ? "bg-green-bg text-green"
-                      : "bg-red-bg text-red"
-                  }`}
-                >
-                  {a.side === "buy" ? "↑" : "↓"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{a.label}</div>
-                  <div className="truncate text-xs text-muted">{a.detail}</div>
-                </div>
-                <span className="text-xs text-muted">{a.when}</span>
-              </li>
-            ))}
-          </ul>
+          <ActivityFeed />
         </section>
       </div>
 

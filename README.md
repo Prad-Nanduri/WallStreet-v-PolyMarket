@@ -90,8 +90,20 @@ No environment variables are required — every data source falls back to built-
 | `GET /api/fedwatch` | CME FedWatch | Rate-probability forecasts — **demo values** (upstream API requires a license) |
 | `GET /api/spy-options` | Yahoo Finance | SPY options chain; **demo values** when Yahoo rate-limits |
 | `POST /api/alerts` | Slack/Discord webhook | `{sent}` — posts when a spread crosses ±10pp, rate-limited once/event/day |
+| `GET /api/wallet?wallet=0x…` | Polymarket data-api | Public positions for a proxy wallet (read-only, no auth) |
+| `POST /api/revalidate` | — | Drops the shared 5-minute `arb-data` fetch cache |
 
-All external fetches use `next: { revalidate: 300 }` (5-minute cache).
+All external fetches use `next: { revalidate: 300, tags: ['arb-data'] }` (5-minute cache, manually clearable via `POST /api/revalidate`).
+
+## Portfolio tracking
+
+Positions are stored client-side in `localStorage` — no accounts or database required. Add them three ways on `/portfolio`:
+
+- **Manual** — event, YES/NO side, size, average price
+- **CSV upload** — `event,side,size,price` rows (price in 0-1 or cents)
+- **Wallet import** — paste a `0x…` Polymarket proxy-wallet address; `/api/wallet` proxies Polymarket's public data-api (read-only, no credentials)
+
+Positions mark-to-market against the active feed (fuzzy event-name match to the spread table), drive the Position P&L chart on `/analytics`, and every add/close is written to the activity log shown on the dashboard and `/history`.
 
 ## Known limitations
 
@@ -101,5 +113,14 @@ All external fetches use `next: { revalidate: 300 }` (5-minute cache).
 - **Election (`pol`) rows use a flat 50% prior** — there's no options-market equivalent for elections, so the Wall Street leg is a hardcoded comparison marked `stale`.
 - **Risk-free rate is hardcoded** at 4% (`r = 0.04`); should eventually come from a Treasury-yield feed.
 - **Alert rate-limiting is in-memory** — resets on server restart; fine for the single-instance MVP.
+- **Portfolio is client-side only** — positions live in browser localStorage; clearing site data removes them.
+- **Position-to-event matching is fuzzy** — marks resolve by event-title match against the spread table; unmatched positions show "—".
+
+## References
+
+- [Polymarket Gamma API](https://docs.polymarket.com) — market metadata and implied probabilities
+- [Deribit API docs](https://docs.deribit.com) — options chain, mark IV, DVOL
+- [CME FedWatch](https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html) — FOMC rate probabilities (licensed)
+- Black & Scholes (1973) — risk-neutral binary probability `e^{-rT}·N(d2)`
 
 Built by [Prad Nanduri](https://github.com/Prad-Nanduri).

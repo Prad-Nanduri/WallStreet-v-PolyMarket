@@ -1,9 +1,9 @@
 import type { EventCategory, PolymarketMarket } from "@/lib/types";
 
+// Sort by 24h volume desc — the default ordering is dominated by politics
+// markets; this surfaces Fed/BTC/SPX financial markets on the first page.
 const GAMMA_URL =
-  "https://gamma-api.polymarket.com/markets?active=true&limit=100";
-// The default ordering is dominated by politics markets, so we page until
-// we have collected enough fed/btc/spx matches (or run out of markets).
+  "https://gamma-api.polymarket.com/markets?active=true&limit=100&order=volume24hr&ascending=false";
 const MAX_PAGES = 10;
 // Cap matches per category — politics markets dominate early pages, so a
 // single global cap would starve btc/spx/fed of matches.
@@ -42,7 +42,7 @@ export async function fetchPolymarketMarkets(): Promise<PolymarketMarket[]> {
   const markets: PolymarketMarket[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
     const res = await fetch(`${GAMMA_URL}&offset=${page * 100}`, {
-      next: { revalidate: 300 },
+      next: { revalidate: 300, tags: ["arb-data"] },
     });
     if (!res.ok) throw new Error(`polymarket gamma ${res.status}`);
     const raw = (await res.json()) as Record<string, unknown>[];

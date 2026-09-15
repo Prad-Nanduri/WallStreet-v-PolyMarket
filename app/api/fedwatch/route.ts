@@ -20,7 +20,7 @@ const DEMO: FedWatchData = {
 
 export async function GET() {
   try {
-    const res = await fetch(CME_URL, { next: { revalidate: 300 } });
+    const res = await fetch(CME_URL, { next: { revalidate: 300, tags: ["arb-data"] } });
     if (!res.ok) throw new Error(`cme fedwatch ${res.status}`);
     const json = await res.json();
     return NextResponse.json({ source: "live", raw: json });

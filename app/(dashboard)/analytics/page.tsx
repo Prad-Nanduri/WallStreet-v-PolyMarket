@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { useArbData } from "@/components/DataProvider";
 import DemoToggle from "@/components/DemoToggle";
+import PositionPnl from "@/components/PositionPnl";
 
 export default function AnalyticsPage() {
   const { demo, setDemo, rows, loading } = useArbData();
@@ -133,6 +134,8 @@ export default function AnalyticsPage() {
           </div>
         </section>
       </div>
+
+      <PositionPnl />
     </main>
   );
 }

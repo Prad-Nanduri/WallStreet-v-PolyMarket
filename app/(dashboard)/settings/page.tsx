@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { useArbData } from "@/components/DataProvider";
+import { portfolio, usePortfolio } from "@/lib/portfolio";
 
 const getTheme = () =>
   document.documentElement.getAttribute("data-theme") === "light"
@@ -32,6 +33,7 @@ const selectCls =
 export default function SettingsPage() {
   const theme = useSyncExternalStore(subTheme, getTheme, getServerTheme);
   const { demo, setDemo } = useArbData();
+  const { positions } = usePortfolio();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-6">
@@ -106,6 +108,22 @@ export default function SettingsPage() {
             <option value="60000">60s</option>
             <option value="300000">5m</option>
           </select>
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-4">
+          <div>
+            <div className="text-sm font-medium">Portfolio data</div>
+            <div className="text-xs text-muted">
+              {positions.length} position{positions.length === 1 ? "" : "s"} +
+              activity log stored in localStorage.
+            </div>
+          </div>
+          <button
+            className="rounded-lg border border-border bg-panel-2 px-3 py-1.5 text-sm text-red transition-opacity hover:opacity-80"
+            onClick={() => portfolio.clearAll()}
+          >
+            Clear
+          </button>
         </div>
 
         <div className="px-5 py-4">
