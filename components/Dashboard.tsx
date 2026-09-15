@@ -49,8 +49,12 @@ const CATEGORY_FILTERS: { key: EventCategory | "all"; label: string }[] = [
   { key: "all", label: "All" },
   { key: "fed", label: "Fed" },
   { key: "btc", label: "BTC" },
+  { key: "crypto", label: "Crypto" },
   { key: "spx", label: "SPX" },
+  { key: "sports", label: "Sports" },
   { key: "pol", label: "Politics" },
+  { key: "geo", label: "Geopolitics" },
+  { key: "misc", label: "Culture" },
 ];
 
 export default function Dashboard() {

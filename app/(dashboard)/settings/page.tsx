@@ -157,10 +157,10 @@ export default function SettingsPage() {
           <div className="text-sm font-medium">Data sources</div>
           <ul className="mt-2 space-y-1 text-xs text-muted">
             <li>· Polymarket — live (gamma-api, 5m cache)</li>
-            <li>· Deribit — live (mark IV, DVOL fallback)</li>
+            <li>· Deribit — live (BTC + ETH options, mark IV / DVOL)</li>
             <li>
-              · Kalshi — live (cross-venue comparison for Fed & politics
-              markets)
+              · Kalshi — live (cross-venue legs for Fed, sports, politics,
+              geo, culture)
             </li>
             <li>
               · CME FedWatch — demo (upstream API requires a data license; set

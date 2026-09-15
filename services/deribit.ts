@@ -9,11 +9,12 @@ interface BookSummary {
   estimated_delivery_price?: number;
 }
 
-/** BTC-USD index (spot). */
-export async function fetchBtcSpot(): Promise<number> {
-  const res = await fetch(`${API}/get_index_price?index_name=btc_usd`, {
-    next: { revalidate: 300, tags: ["arb-data"] },
-  });
+/** Currency index (spot). */
+export async function fetchSpot(currency: "BTC" | "ETH"): Promise<number> {
+  const res = await fetch(
+    `${API}/get_index_price?index_name=${currency.toLowerCase()}_usd`,
+    { next: { revalidate: 300, tags: ["arb-data"] } },
+  );
   if (!res.ok) throw new Error(`deribit index ${res.status}`);
   const json = await res.json();
   const price = json?.result?.index_price;
@@ -22,11 +23,13 @@ export async function fetchBtcSpot(): Promise<number> {
 }
 
 /** DVOL 30-day implied-vol index (latest daily close), percent. */
-export async function fetchDvol(): Promise<number | null> {
+export async function fetchDvol(
+  currency: "BTC" | "ETH",
+): Promise<number | null> {
   const end = Date.now();
   const start = end - 3 * 86_400_000;
   const res = await fetch(
-    `${API}/get_volatility_index_data?currency=BTC&start_timestamp=${start}&end_timestamp=${end}&resolution=1D`,
+    `${API}/get_volatility_index_data?currency=${currency}&start_timestamp=${start}&end_timestamp=${end}&resolution=1D`,
     { next: { revalidate: 300, tags: ["arb-data"] } },
   );
   if (!res.ok) return null;
@@ -45,20 +48,25 @@ interface ParsedInstrument {
   summary: BookSummary;
 }
 
-const INSTRUMENT_RE = /^BTC-(\d{1,2}[A-Z]{3}\d{2})-(\d+)-([CP])$/;
+function instrumentRe(currency: "BTC" | "ETH"): RegExp {
+  return new RegExp(`^${currency}-(\\d{1,2}[A-Z]{3}\\d{2})-(\\d+)-([CP])$`);
+}
 
-/** All live BTC option book summaries, parsed. */
-async function fetchOptionSummaries(): Promise<ParsedInstrument[]> {
+/** All live option book summaries for a currency, parsed. */
+async function fetchOptionSummaries(
+  currency: "BTC" | "ETH",
+): Promise<ParsedInstrument[]> {
   const res = await fetch(
-    `${API}/get_book_summary_by_currency?currency=BTC&kind=option`,
+    `${API}/get_book_summary_by_currency?currency=${currency}&kind=option`,
     { next: { revalidate: 300, tags: ["arb-data"] } },
   );
   if (!res.ok) throw new Error(`deribit book_summary ${res.status}`);
   const json = await res.json();
   const rows = (json?.result ?? []) as BookSummary[];
+  const re = instrumentRe(currency);
   const out: ParsedInstrument[] = [];
   for (const summary of rows) {
-    const match = INSTRUMENT_RE.exec(summary.instrument_name);
+    const match = re.exec(summary.instrument_name);
     if (!match) continue;
     const expiryMs = Date.parse(match[1]);
     if (!Number.isFinite(expiryMs)) continue;
@@ -78,12 +86,13 @@ async function fetchOptionSummaries(): Promise<ParsedInstrument[]> {
  * few expiries. markIv falls back to DVOL when a strike/expiry has no data.
  */
 export async function fetchDeribitSnapshots(
+  currency: "BTC" | "ETH" = "BTC",
   maxExpiries = 3,
 ): Promise<DeribitSnapshot[]> {
   const [spot, dvol, options] = await Promise.all([
-    fetchBtcSpot(),
-    fetchDvol(),
-    fetchOptionSummaries(),
+    fetchSpot(currency),
+    fetchDvol(currency),
+    fetchOptionSummaries(currency),
   ]);
 
   const now = Date.now();

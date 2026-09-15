@@ -9,7 +9,12 @@ import type {
 } from "@/lib/types";
 import { fetchPolymarketMarkets } from "@/services/polymarket";
 import { fetchDeribitSnapshots } from "@/services/deribit";
-import { fetchKalshiMarkets, kalshiPriceFor } from "@/services/kalshi";
+import {
+  fetchKalshiGameMarkets,
+  fetchKalshiMarkets,
+  kalshiPriceFor,
+  kalshiSportsPrice,
+} from "@/services/kalshi";
 import { seededSpreadHistory } from "@/lib/sparkline";
 
 export const runtime = "nodejs";
@@ -43,14 +48,15 @@ const PRICE_PHRASING =
   /\b(hit|reach|above|over|exceed|below|under|close|finish|end)\b|\$/i;
 
 /** Plausible threshold ranges so stray numbers (years, counts) are ignored. */
-const K_RANGE: Record<"btc" | "spx", [number, number]> = {
+const K_RANGE: Record<"btc" | "spx" | "crypto", [number, number]> = {
   btc: [20_000, 1_000_000],
   spx: [1_000, 50_000],
+  crypto: [50, 100_000],
 };
 
 function priceThreshold(
   question: string,
-  category: "btc" | "spx",
+  category: "btc" | "spx" | "crypto",
 ): number | null {
   if (!PRICE_PHRASING.test(question)) return null;
   const K = extractThreshold(question);
@@ -109,11 +115,12 @@ interface SnapshotWithMs extends DeribitSnapshot {
   expiryMsNum: number;
 }
 
-function btcProbability(
+function cryptoProbability(
   market: PolymarketMarket,
   snapshots: SnapshotWithMs[],
+  category: "btc" | "crypto",
 ): { prob: number; stale: boolean } | null {
-  const K = priceThreshold(market.question, "btc");
+  const K = priceThreshold(market.question, category);
   if (K === null || snapshots.length === 0) return null;
   const endMs = Date.parse(market.endDate);
   const snap = Number.isFinite(endMs)
@@ -166,15 +173,20 @@ function spxProbability(
 
 export async function GET(req: Request) {
   const origin = new URL(req.url).origin;
-  const [markets, snapshots, fedwatch, spy, kalshiMarkets] = await Promise.all([
+  const withMs = (s: DeribitSnapshot[]): SnapshotWithMs[] =>
+    s.map((x) => ({ ...x, expiryMsNum: Date.parse(x.expiryDate) }));
+  const [
+    markets,
+    snapshots,
+    fedwatch,
+    spy,
+    kalshiMarkets,
+    ethSnapshots,
+    kalshiGames,
+  ] = await Promise.all([
     fetchPolymarketMarkets().catch(() => [] as PolymarketMarket[]),
-    fetchDeribitSnapshots()
-      .then((s) =>
-        s.map<SnapshotWithMs>((x) => ({
-          ...x,
-          expiryMsNum: Date.parse(x.expiryDate),
-        })),
-      )
+    fetchDeribitSnapshots("BTC")
+      .then(withMs)
       .catch(() => [] as SnapshotWithMs[]),
     getJson<FedWatchData>(`${origin}/api/fedwatch`).catch(
       () =>
@@ -194,10 +206,23 @@ export async function GET(req: Request) {
         }) satisfies SpyOptionsData,
     ),
     fetchKalshiMarkets().catch(() => []),
+    fetchDeribitSnapshots("ETH")
+      .then(withMs)
+      .catch(() => [] as SnapshotWithMs[]),
+    fetchKalshiGameMarkets().catch(() => []),
   ]);
 
   const rows: ArbitrageRow[] = [];
-  const counts = { fed: 0, btc: 0, spx: 0, pol: 0 };
+  const counts = {
+    fed: 0,
+    btc: 0,
+    spx: 0,
+    pol: 0,
+    sports: 0,
+    crypto: 0,
+    geo: 0,
+    misc: 0,
+  };
   for (const market of markets) {
     if (counts[market.category] >= MAX_PER_CATEGORY) continue;
     let result: { prob: number; stale: boolean; source: string } | null =
@@ -217,7 +242,10 @@ export async function GET(req: Request) {
             fedwatch.source === "demo" ? "FedWatch (demo)" : "FedWatch",
           );
     if (market.category === "btc")
-      result = withSource(btcProbability(market, snapshots), "Deribit");
+      result = withSource(
+        cryptoProbability(market, snapshots, "btc"),
+        "Deribit",
+      );
     if (market.category === "spx")
       result = withSource(
         spxProbability(market, spy),
@@ -229,6 +257,22 @@ export async function GET(req: Request) {
       result = kalshi
         ? { prob: kalshi.prob, stale: false, source: "Kalshi" }
         : { ...polProbability(), source: "50% prior" };
+    if (market.category === "crypto")
+      result = withSource(
+        cryptoProbability(market, ethSnapshots, "crypto"),
+        "Deribit",
+      );
+    if (market.category === "sports") {
+      const sp = kalshiSportsPrice(market.question, kalshiGames);
+      if (sp) result = { prob: sp.prob, stale: false, source: "Kalshi" };
+    }
+    if (market.category === "geo" || market.category === "misc") {
+      // These categories exist to widen live coverage — require a real
+      // Kalshi twin rather than emitting a demo-leg row.
+      if (!kalshi) continue;
+      result = { prob: kalshi.prob, stale: false, source: "Kalshi" };
+    }
+    if (market.category === "sports" && !result) continue;
     if (!result) continue;
 
     const polymarketPct = market.yesProbability * 100;
