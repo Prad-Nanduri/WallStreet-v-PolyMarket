@@ -57,7 +57,16 @@ export default function Dashboard() {
   const { demo, setDemo, rows, loading, error } = useArbData();
   const [cat, setCat] = useState<EventCategory | "all">("all");
   const [query, setQuery] = useState("");
-  const visible = rows.filter(
+  const [showDemoLegs, setShowDemoLegs] = useState(false);
+  // Live mode hides rows whose Wall Street leg fell back to demo data —
+  // a placeholder comparison is worse than no row. Demo mode shows all.
+  const liveRows = demo || showDemoLegs ? rows : rows.filter((r) => !r.stale);
+  const hiddenStale = rows.length - liveRows.length;
+  const catCounts = rows.reduce<Record<string, number>>((acc, r) => {
+    acc[r.category] = (acc[r.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  const visible = liveRows.filter(
     (r) =>
       (cat === "all" || r.category === cat) &&
       (!query || r.event.toLowerCase().includes(query.toLowerCase())),
@@ -144,19 +153,33 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-4 py-2.5">
-            {CATEGORY_FILTERS.map((f) => (
+            {CATEGORY_FILTERS.map((f) => {
+              const count =
+                f.key === "all" ? rows.length : (catCounts[f.key] ?? 0);
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setCat(f.key)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    cat === f.key
+                      ? "bg-panel-2 text-text"
+                      : "text-muted hover:bg-[var(--hover)] hover:text-text"
+                  }`}
+                >
+                  {f.label}
+                  <span className="ml-1 text-[10px] text-muted">{count}</span>
+                </button>
+              );
+            })}
+            {!demo && hiddenStale > 0 && (
               <button
-                key={f.key}
-                onClick={() => setCat(f.key)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  cat === f.key
-                    ? "bg-panel-2 text-text"
-                    : "text-muted hover:bg-[var(--hover)] hover:text-text"
-                }`}
+                onClick={() => setShowDemoLegs((s) => !s)}
+                className="rounded-md px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-text"
+                title="Rows whose Wall Street leg fell back to demo data"
               >
-                {f.label}
+                {showDemoLegs ? "hide" : "show"} {hiddenStale} demo-leg
               </button>
-            ))}
+            )}
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -195,7 +218,7 @@ export default function Dashboard() {
                   </td>
                 </tr>
               )}
-              {visible.length === 0 && rows.length > 0 && (
+              {visible.length === 0 && liveRows.length > 0 && (
                 <tr>
                   <td
                     colSpan={6}
