@@ -10,9 +10,9 @@ function signal(spread: number): { label: string; cls: string } {
 function rowTint(spread: number): string {
   const a = Math.abs(spread);
   if (a > 10)
-    return "bg-gradient-to-r from-[var(--red-bg)] to-transparent";
+    return "bg-gradient-to-r from-[var(--red-bg)] via-[var(--red-bg)] to-transparent";
   if (a < 5)
-    return "bg-gradient-to-r from-[var(--green-bg)] to-transparent";
+    return "bg-gradient-to-r from-[var(--green-bg)] via-[var(--green-bg)] to-transparent";
   return "";
 }
 
@@ -25,30 +25,34 @@ const CATEGORY_BADGE: Record<ArbitrageRow["category"], string> = {
 export default function EventRow({ row }: { row: ArbitrageRow }) {
   const s = signal(row.spread);
   return (
-    <tr className={`border-t border-border ${rowTint(row.spread)}`}>
+    <tr
+      className={`border-t border-border-soft transition-colors hover:bg-[var(--hover)] ${rowTint(
+        row.spread,
+      )}`}
+    >
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="rounded border border-border bg-panel-2 px-1.5 py-0.5 font-mono text-[10px] text-muted">
+        <div className="flex items-center gap-2.5">
+          <span className="rounded-md border border-border bg-panel-2 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wide text-muted">
             {CATEGORY_BADGE[row.category]}
           </span>
-          <span className="max-w-[380px] truncate text-sm font-medium">
+          <span className="max-w-[400px] truncate text-sm font-medium">
             {row.event}
           </span>
           {row.stale && (
-            <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted">
+            <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted">
               demo feed
             </span>
           )}
         </div>
       </td>
-      <td className="px-4 py-3 text-right font-mono text-sm">
+      <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums">
         {row.polymarketPct.toFixed(1)}%
       </td>
-      <td className="px-4 py-3 text-right font-mono text-sm">
+      <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums text-muted">
         {row.wallStreetPct.toFixed(1)}%
       </td>
       <td
-        className={`px-4 py-3 text-right font-mono text-sm font-semibold ${
+        className={`px-4 py-3 text-right font-mono text-[13px] font-semibold tabular-nums ${
           Math.abs(row.spread) > 10
             ? "text-red"
             : Math.abs(row.spread) < 5
@@ -59,7 +63,7 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
         {row.spread > 0 ? "+" : ""}
         {row.spread.toFixed(1)}pp
       </td>
-      <td className={`px-4 py-3 text-right text-sm font-medium ${s.cls}`}>
+      <td className={`px-4 py-3 text-right text-[13px] font-medium ${s.cls}`}>
         {s.label}
       </td>
     </tr>
