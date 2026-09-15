@@ -1,0 +1,21 @@
+
+> wallstreet-v-polymarket@0.1.0 dev
+> next dev
+
+⚠ Port 3000 is in use by process 1768, using available port 3001 instead.
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://172.16.255.2:3001
+- Environments: .env.local
+✓ Ready in 434ms
+✓ Running next.config.ts took 31ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          1768
+- Dir:          C:\Users\Administrator\repos\WallStreet-v-PolyMarket
+- Log:          .next\dev\logs\next-development.log
+
+You can access the existing server at http://localhost:3000,
+or run taskkill /PID 1768 /F to stop it and start a new one.
+[?25h

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import type { EventCategory } from "@/lib/types";
 import { useArbData } from "./DataProvider";
 import ActivityFeed from "./ActivityFeed";
 import DemoToggle from "./DemoToggle";
@@ -43,8 +45,23 @@ function StatCard({
   );
 }
 
+const CATEGORY_FILTERS: { key: EventCategory | "all"; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "fed", label: "Fed" },
+  { key: "btc", label: "BTC" },
+  { key: "spx", label: "SPX" },
+  { key: "pol", label: "Politics" },
+];
+
 export default function Dashboard() {
   const { demo, setDemo, rows, loading, error } = useArbData();
+  const [cat, setCat] = useState<EventCategory | "all">("all");
+  const [query, setQuery] = useState("");
+  const visible = rows.filter(
+    (r) =>
+      (cat === "all" || r.category === cat) &&
+      (!query || r.event.toLowerCase().includes(query.toLowerCase())),
+  );
   const significant = rows.filter((r) => r.isSignificant).length;
   const staleCount = rows.filter((r) => r.stale).length;
   const avgSpread = rows.length
@@ -126,6 +143,27 @@ export default function Dashboard() {
                     : "Live — refreshes every 30s"}
             </span>
           </div>
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-4 py-2.5">
+            {CATEGORY_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setCat(f.key)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  cat === f.key
+                    ? "bg-panel-2 text-text"
+                    : "text-muted hover:bg-[var(--hover)] hover:text-text"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter events…"
+              className="ml-auto w-40 rounded-md border border-border bg-panel-2 px-2.5 py-1 text-xs text-text placeholder:text-muted focus:outline-none"
+            />
+          </div>
           <div className="overflow-x-auto">
           <table className="w-full min-w-[620px]">
             <thead>
@@ -140,12 +178,12 @@ export default function Dashboard() {
             </thead>
             <tbody>
               <TableErrorBoundary>
-                {rows.map((row) => (
+                {visible.map((row) => (
                   <EventRow key={row.event} row={row} />
                 ))}
               </TableErrorBoundary>
               {!demo && loading && <TableSkeleton rows={4} />}
-              {!demo && !loading && rows.length === 0 && (
+              {!demo && !loading && visible.length === 0 && rows.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
@@ -154,6 +192,16 @@ export default function Dashboard() {
                     {error
                       ? "Could not fetch live data — flip to Demo Data."
                       : "No matching markets found."}
+                  </td>
+                </tr>
+              )}
+              {visible.length === 0 && rows.length > 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="border-t border-border-soft px-4 py-6 text-center text-sm text-muted"
+                  >
+                    No rows match this filter.
                   </td>
                 </tr>
               )}

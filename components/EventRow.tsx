@@ -55,6 +55,11 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
       </td>
       <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums text-muted">
         {row.wallStreetPct.toFixed(1)}%
+        {row.wallStreetSource && (
+          <div className="text-[10px] font-normal text-muted">
+            via {row.wallStreetSource}
+          </div>
+        )}
       </td>
       <td
         className={`px-4 py-3 text-right font-mono text-[13px] font-semibold tabular-nums ${
