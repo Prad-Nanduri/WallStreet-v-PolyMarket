@@ -95,6 +95,54 @@ export async function fetchKalshiMarkets(): Promise<KalshiMarket[]> {
   return out;
 }
 
+export interface KalshiSearchHit {
+  /** event title, used as the row's event label */
+  title: string;
+  yesPrice: number | null;
+}
+
+const SEARCH_EVENT_PAGES = 12;
+
+/** Text search over Kalshi events: paginate open events and keep those
+ *  whose title shares every content token with the query. Kalshi has no
+ *  server-side search, so matching is done locally over event titles. */
+export async function searchKalshiEvents(q: string): Promise<KalshiSearchHit[]> {
+  const qToks = tokens(q);
+  if (qToks.size === 0) return [];
+  const hits: KalshiSearchHit[] = [];
+  let cursor = "";
+  for (let i = 0; i < SEARCH_EVENT_PAGES; i++) {
+    const url = `${KALSHI_BASE}/events?status=open&limit=100&with_nested_markets=true${cursor ? `&cursor=${cursor}` : ""}`;
+    const res = await fetch(url, {
+      next: { revalidate: 60, tags: ["arb-data"] },
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+    if (!res.ok) throw new Error(`kalshi events ${res.status}`);
+    const json = await res.json();
+    for (const ev of (json?.events ?? []) as Record<string, unknown>[]) {
+      const evTitle = String(ev.title ?? "");
+      if (!evTitle) continue;
+      const evToks = tokens(evTitle);
+      let all = true;
+      qToks.forEach((t) => {
+        if (!evToks.has(t)) all = false;
+      });
+      if (!all) continue;
+      // Representative price: the nested market with the highest yes
+      // ask — nearest to the headline outcome.
+      let best: number | null = null;
+      for (const m of (ev.markets ?? []) as Record<string, unknown>[]) {
+        const p = marketYesPrice(m);
+        if (p !== null && (best === null || p > best)) best = p;
+      }
+      hits.push({ title: evTitle, yesPrice: best });
+    }
+    cursor = String(json?.cursor ?? "");
+    if (!cursor || (json?.events ?? []).length === 0) break;
+  }
+  return hits;
+}
+
 /** Best Kalshi yes-price for a Polymarket question, or null when no title
  *  clears the similarity bar. */
 export function kalshiPriceFor(

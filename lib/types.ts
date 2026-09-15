@@ -62,3 +62,16 @@ export interface ArbitrageRow {
    */
   sparkline: number[];
 }
+
+/** A row from the on-demand topic search — unlike ArbitrageRow, either
+ *  venue may simply have no market for the topic, so legs are nullable. */
+export interface SearchRow {
+  event: string;
+  category: EventCategory | "other";
+  /** percent 0-100, or null when Polymarket has no such market */
+  polymarketPct: number | null;
+  /** percent 0-100, or null when no Kalshi/options leg exists */
+  wallStreetPct: number | null;
+  wallStreetSource?: string;
+  spread: number | null;
+}

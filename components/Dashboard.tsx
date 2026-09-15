@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { EventCategory } from "@/lib/types";
+import { useRef, useState } from "react";
+import type { EventCategory, SearchRow } from "@/lib/types";
 import { useArbData } from "./DataProvider";
 import ActivityFeed from "./ActivityFeed";
 import DemoToggle from "./DemoToggle";
@@ -70,6 +70,30 @@ export default function Dashboard() {
     acc[r.category] = (acc[r.category] ?? 0) + 1;
     return acc;
   }, {});
+  const [searchRows, setSearchRows] = useState<SearchRow[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced live search across Polymarket + Kalshi for arbitrary topics.
+  const onQuery = (v: string) => {
+    setQuery(v);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const q = v.trim();
+    if (q.length < 3) {
+      setSearchRows(null);
+      return;
+    }
+    searchTimer.current = setTimeout(() => {
+      setSearching(true);
+      fetch(`/api/search?q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : { rows: [] }))
+        .then((d: { rows: SearchRow[] }) => setSearchRows(d.rows))
+        .catch(() => setSearchRows([]))
+        .finally(() => setSearching(false));
+    }, 500);
+  };
+
   const visible = liveRows.filter(
     (r) =>
       (cat === "all" || r.category === cat) &&
@@ -186,9 +210,9 @@ export default function Dashboard() {
             )}
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter events…"
-              className="ml-auto w-40 rounded-md border border-border bg-panel-2 px-2.5 py-1 text-xs text-text placeholder:text-muted focus:outline-none"
+              onChange={(e) => onQuery(e.target.value)}
+              placeholder="Search any topic — tesla, pope, lakers…"
+              className="ml-auto w-64 rounded-md border border-border bg-panel-2 px-2.5 py-1 text-xs text-text placeholder:text-muted focus:outline-none"
             />
           </div>
           <div className="overflow-x-auto">
@@ -205,9 +229,11 @@ export default function Dashboard() {
             </thead>
             <tbody>
               <TableErrorBoundary>
-                {visible.map((row) => (
-                  <EventRow key={row.event} row={row} />
-                ))}
+                {searchRows === null
+                  ? visible.map((row) => <EventRow key={row.event} row={row} />)
+                  : searchRows.map((row) => (
+                      <SearchResultRow key={row.event} row={row} />
+                    ))}
               </TableErrorBoundary>
               {!demo && loading && <TableSkeleton rows={4} />}
               {!demo && !loading && visible.length === 0 && rows.length === 0 && (
@@ -219,6 +245,26 @@ export default function Dashboard() {
                     {error
                       ? "Could not fetch live data — flip to Demo Data."
                       : "No matching markets found."}
+                  </td>
+                </tr>
+              )}
+              {searching && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="border-t border-border-soft px-4 py-6 text-center text-sm text-muted"
+                  >
+                    Searching Polymarket & Kalshi…
+                  </td>
+                </tr>
+              )}
+              {searchRows !== null && !searching && searchRows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="border-t border-border-soft px-4 py-6 text-center text-sm text-muted"
+                  >
+                    No markets on Polymarket or Kalshi for this topic.
                   </td>
                 </tr>
               )}
@@ -254,5 +300,72 @@ export default function Dashboard() {
         investment advice.
       </p>
     </main>
+  );
+}
+
+const SEARCH_BADGE: Record<string, string> = {
+  fed: "FED",
+  btc: "BTC",
+  spx: "SPX",
+  pol: "POL",
+  sports: "SPT",
+  crypto: "CRYPTO",
+  geo: "GEO",
+  misc: "MISC",
+  other: "—",
+};
+
+function Leg({
+  pct,
+  via,
+}: {
+  pct: number | null;
+  via?: string;
+}) {
+  if (pct === null)
+    return (
+      <td className="px-4 py-3 text-right font-mono text-[12px] text-muted">
+        no market
+      </td>
+    );
+  return (
+    <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums">
+      {pct.toFixed(1)}%
+      {via && (
+        <div className="text-[10px] font-normal text-muted">via {via}</div>
+      )}
+    </td>
+  );
+}
+
+function SearchResultRow({ row }: { row: SearchRow }) {
+  return (
+    <tr className="border-t border-border-soft transition-colors hover:bg-[var(--hover)]">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="rounded-md border border-border bg-panel-2 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wide text-muted">
+            {SEARCH_BADGE[row.category] ?? "—"}
+          </span>
+          <span className="max-w-[400px] truncate text-sm font-medium">
+            {row.event}
+          </span>
+        </div>
+      </td>
+      <Leg pct={row.polymarketPct} via="Polymarket" />
+      <Leg pct={row.wallStreetPct} via={row.wallStreetSource} />
+      <td className="px-4 py-3 text-right font-mono text-[13px] font-semibold tabular-nums text-muted">
+        {row.spread === null
+          ? "—"
+          : `${row.spread > 0 ? "+" : ""}${row.spread.toFixed(1)}pp`}
+      </td>
+      <td className="px-4 py-3 text-muted">—</td>
+      <td className="px-4 py-3 text-right text-[13px] text-muted">
+        {row.spread === null
+          ? "—"
+          : Math.abs(row.spread) > 10
+            ? "Spread >10pp"
+            : "Watch"}
+      </td>
+    </tr>
   );
 }

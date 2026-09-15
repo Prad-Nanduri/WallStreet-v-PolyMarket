@@ -111,11 +111,11 @@ function polProbability(): { prob: number; stale: boolean } {
   return { prob: 0.5, stale: true };
 }
 
-interface SnapshotWithMs extends DeribitSnapshot {
+export interface SnapshotWithMs extends DeribitSnapshot {
   expiryMsNum: number;
 }
 
-function cryptoProbability(
+export function cryptoProbability(
   market: PolymarketMarket,
   snapshots: SnapshotWithMs[],
   category: "btc" | "crypto",
@@ -147,7 +147,7 @@ function cryptoProbability(
   return { prob: p, stale: false };
 }
 
-function spxProbability(
+export function spxProbability(
   market: PolymarketMarket,
   spy: SpyOptionsData,
 ): { prob: number; stale: boolean } | null {
