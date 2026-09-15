@@ -2,6 +2,8 @@
 
 **Cross-Market Probability Arbitrage Dashboard** — a Next.js + TypeScript trading terminal that answers one question: *where do prediction markets and traditional finance disagree on the same event?*
 
+> Compares Polymarket prediction-market probabilities against a Black–Scholes-derived "Wall Street" probability for the same binary event (Fed decisions, BTC thresholds, SPX levels, election markets).
+
 Each row compares a Polymarket price against a "Wall Street" probability for the same binary event and exposes the gap as a spread (`polymarketYes − wallStreet`, percentage points). Spreads past ±10pp flag as potential pricing inefficiencies — the kind of dislocation a cross-venue arbitrageur hunts for.
 
 The Wall Street leg is built two ways:
