@@ -14,8 +14,8 @@ const NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-panel px-4 py-5 md:flex">
-      <div className="mb-8 px-2 text-lg font-semibold tracking-tight">
+    <aside className="hidden w-44 shrink-0 flex-col border-r border-border bg-panel px-3 py-5 md:flex">
+      <div className="mb-8 px-2 text-base font-semibold tracking-tight">
         WallSt <span className="text-muted">v</span>{" "}
         <span className="text-accent">Poly</span>
       </div>
@@ -29,7 +29,7 @@ export default function Sidebar() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors ${
                 active
                   ? "bg-panel-2 font-medium text-text"
                   : "text-muted hover:bg-[var(--hover)] hover:text-text"

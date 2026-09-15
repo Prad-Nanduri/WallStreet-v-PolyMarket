@@ -108,7 +108,7 @@ export default function Dashboard() {
         <StatCard
           label="Avg |Spread|"
           value={`${avgSpread.toFixed(1)}pp`}
-          sub={staleCount > 0 ? `${staleCount} on demo feed` : "all feeds live"}
+          sub={staleCount > 0 ? `${staleCount} rows w/ demo legs` : "all legs live"}
         />
       </div>
 
@@ -121,10 +121,13 @@ export default function Dashboard() {
                 ? "Demo mode — hardcoded snapshot"
                 : error
                   ? "Live fetch failed"
-                  : "Live — refreshes every 30s"}
+                  : staleCount > 0
+                    ? `Live — ${staleCount} row${staleCount === 1 ? "" : "s"} on demo legs`
+                    : "Live — refreshes every 30s"}
             </span>
           </div>
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px]">
             <thead>
               <tr className="text-left text-[11px] font-semibold uppercase tracking-widest text-muted">
                 <th className="px-4 py-2.5">Event</th>
@@ -156,6 +159,7 @@ export default function Dashboard() {
               )}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="rounded-xl border border-border bg-panel">
@@ -163,15 +167,16 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold">Recent Activity</h2>
             <span className="text-xs text-muted">Today</span>
           </div>
-          <ActivityFeed />
+          <ActivityFeed note />
         </section>
       </div>
 
       <p className="mt-4 text-xs text-muted">
         Wall Street % = discounted Black-Scholes binary probability
-        exp(-rT)·N(d2). Fed legs use CME FedWatch-style probabilities, BTC legs
-        use Deribit mark IV (DVOL fallback), SPX legs use SPY options ×10
-        (approximation). Not investment advice.
+        exp(-rT)·N(d2). BTC legs use live Deribit mark IV (DVOL fallback),
+        SPX legs use live CBOE SPY IV30 ×10 (approximation), Fed legs use
+        FedWatch-style demo values (CME API requires a license). Not
+        investment advice.
       </p>
     </main>
   );

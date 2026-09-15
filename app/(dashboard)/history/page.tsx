@@ -18,7 +18,7 @@ export default function HistoryPage() {
           <h2 className="text-sm font-semibold">Recent Activity</h2>
           <span className="text-xs text-muted">All time</span>
         </div>
-        <ActivityFeed large />
+        <ActivityFeed large note />
       </section>
     </main>
   );
