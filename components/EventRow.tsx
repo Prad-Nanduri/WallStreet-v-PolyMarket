@@ -52,6 +52,9 @@ export default function EventRow({ row }: { row: ArbitrageRow }) {
       </td>
       <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums">
         {row.polymarketPct.toFixed(1)}%
+        <div className="text-[10px] font-normal text-muted">
+          via Polymarket
+        </div>
       </td>
       <td className="px-4 py-3 text-right font-mono text-[13px] tabular-nums text-muted">
         {row.wallStreetPct.toFixed(1)}%
